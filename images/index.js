@@ -24,7 +24,7 @@ if (!fs.existsSync(dir)){
     fs.mkdirSync(dir);
 }
 
-const regex = '\/images_imported\/(.+?).jpg'
+const regex = '\/images_imported\/(.+?).\?.itok'
 
 const getImage = (name, uri) => {
     const file = fs.createWriteStream(name);
