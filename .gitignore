@@ -1,0 +1,7 @@
+.vscode/
+watchesenv/
+watchesenv-cpu/
+__pycache__/
+node_modules/
+raw_images/
+flower_photos.tgz
