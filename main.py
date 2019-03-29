@@ -20,13 +20,7 @@ import tensorflow_hub as hub
 
 from tensorflow.keras import layers
 
-
-# #For Keras
-# from keras.callbacks import ModelCheckpoint
-# from keras.models import Model, load_model, save_model, Sequential
-# from keras.layers import Dense, Activation, Dropout, Input, Masking, TimeDistributed, LSTM, Conv1D
-# from keras.layers import GRU, Bidirectional, BatchNormalization, Reshape
-# from keras.optimizers import Adam
+## config for using the gpu memory with keras
 from keras.backend.tensorflow_backend import set_session
 import tensorflow as tf
 config = tf.ConfigProto()
@@ -35,21 +29,24 @@ config.log_device_placement = True  # to log device placement (on which device t
 sess = tf.Session(config=config)
 set_session(sess)  # set this TensorFlow session as the default session for Keras
 
-data_root = tf.keras.utils.get_file(
-  'flower_photos','https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz',
-   untar=True)
+# data_root = tf.keras.utils.get_file(
+#   'flower_photos','https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz',
+#    untar=True)
+# data_root  = "./images/raw_images"
+data_root  = "./images/processed_images"
 
-print("plop", data_root)
-
-image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1/255)
+image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True)
 image_data = image_generator.flow_from_directory(str(data_root))
-
 for image_batch,label_batch in image_data:
   print("Image batch shape: ", image_batch.shape)
   print("Labe batch shape: ", label_batch.shape)
   break
 
-classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2" #@param {type:"string"}
+# classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2" #@param {type:"string"}
+classifier_url = "https://tfhub.dev/google/imagenet/inception_resnet_v2/classification/1" #@param {type:"string"}
 
 def classifier(x):
   classifier_module = hub.Module(classifier_url)
@@ -76,43 +73,45 @@ sess.run(init)
 import numpy as np
 import PIL.Image as Image
 
-grace_hopper = tf.keras.utils.get_file('image.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg')
-grace_hopper = Image.open(grace_hopper).resize(IMAGE_SIZE)
-grace_hopper 
+# grace_hopper = tf.keras.utils.get_file('image.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg')
+# grace_hopper = Image.open(grace_hopper).resize(IMAGE_SIZE)
+# grace_hopper 
 
-grace_hopper = np.array(grace_hopper)/255.0
-grace_hopper.shape
+# grace_hopper = np.array(grace_hopper)/255.0
+# grace_hopper.shape
 
-result = classifier_model.predict(grace_hopper[np.newaxis, ...])
-result.shape
+# result = classifier_model.predict(grace_hopper[np.newaxis, ...])
+# result.shape
 
 
-predicted_class = np.argmax(result[0], axis=-1)
-predicted_class
+# predicted_class = np.argmax(result[0], axis=-1)
+# predicted_class
 
-labels_path = tf.keras.utils.get_file('ImageNetLabels.txt','https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt')
-imagenet_labels = np.array(open(labels_path).read().splitlines())
+# labels_path = tf.keras.utils.get_file('ImageNetLabels.txt','https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt')
+# imagenet_labels = np.array(open(labels_path).read().splitlines())
 
-plt.imshow(grace_hopper)
-plt.axis('off')
-predicted_class_name = imagenet_labels[predicted_class]
-_ = plt.title("Prediction: " + predicted_class_name)
+# plt.imshow(grace_hopper)
+# plt.axis('off')
+# predicted_class_name = imagenet_labels[predicted_class]
+# _ = plt.title("Prediction: " + predicted_class_name)
 
-result_batch = classifier_model.predict(image_batch)
+# result_batch = classifier_model.predict(image_batch)
 
-labels_batch = imagenet_labels[np.argmax(result_batch, axis=-1)]
-labels_batch
+# labels_batch = imagenet_labels[np.argmax(result_batch, axis=-1)]
+# labels_batch
 
-plt.figure(figsize=(10,9))
-for n in range(30):
-  plt.subplot(6,5,n+1)
-  plt.imshow(image_batch[n])
-  plt.title(labels_batch[n])
-  plt.axis('off')
-_ = plt.suptitle("ImageNet predictions")
+# plt.figure(figsize=(10,9))
+# for n in range(30):
+#   plt.subplot(6,5,n+1)
+#   plt.imshow(image_batch[n])
+#   plt.title(labels_batch[n])
+#   plt.axis('off')
+# _ = plt.suptitle("ImageNet predictions")
 
-# feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2" #@param {type:"string"}
+#feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2" #@param {type:"string"}
 feature_extractor_url = "https://tfhub.dev/google/imagenet/inception_resnet_v2/feature_vector/1"
+
+#data_root  = "./images/raw_images"
 
 def feature_extractor(x):
   feature_extractor_module = hub.Module(feature_extractor_url)
@@ -120,10 +119,12 @@ def feature_extractor(x):
 
 IMAGE_SIZE = hub.get_expected_image_size(hub.Module(feature_extractor_url))
 
+print (IMAGE_SIZE)
+
 image_data = image_generator.flow_from_directory(str(data_root), target_size=IMAGE_SIZE)
 for image_batch,label_batch in image_data:
   print("Image batch shape: ", image_batch.shape)
-  print("Labe batch shape: ", label_batch.shape)
+  print("Label batch shape: ", label_batch.shape)
   break
 
 features_extractor_layer = layers.Lambda(feature_extractor, input_shape=IMAGE_SIZE+[3])
@@ -161,6 +162,19 @@ batch_stats = CollectBatchStats()
 model.fit((item for item in image_data), epochs=1, 
                     steps_per_epoch=steps_per_epoch,
                     callbacks = [batch_stats])
+model.fit_generator(image_data,
+                    epochs=20,
+                    # steps_per_epoch=steps_per_epoch,
+                    steps_per_epoch=2000,
+                    callbacks = [batch_stats],
+                    validation_data=image_data)
+
+saver = tf.train.Saver()
+sess = K.get_session()
+
+saver.save(sess, './keras_model')
+
+model.save('keras_model.hdf5')
 
 plt.figure()
 plt.ylabel("Loss")
@@ -174,7 +188,6 @@ plt.xlabel("Training Steps")
 plt.ylim([0,1])
 plt.plot(batch_stats.batch_acc)
 plt.show()
-
 
 label_names = sorted(image_data.class_indices.items(), key=lambda pair:pair[1])
 label_names = np.array([key.title() for key, value in label_names])
@@ -197,3 +210,5 @@ export_path = tf.contrib.saved_model.save_keras_model(model, "./saved_models")
 export_path
 
 
+
+plt.show()

@@ -4,4 +4,6 @@ watchesenv-cpu/
 __pycache__/
 node_modules/
 raw_images/
+raw_images_copy/
+processed_images/
 flower_photos.tgz
